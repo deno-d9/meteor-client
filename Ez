@@ -1,5 +1,5 @@
--- MM2 AutoFarm Premium - Part 1/2
--- Features: RGB Outline, Cool Toggles, Tween Speed 30
+-- MM2 AutoFarm Premium - Part 1/2 (FIXED)
+-- Fixed: Draggable GUI + Toggle Glitches
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
@@ -11,46 +11,9 @@ local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 
--- Remote Events
-local CoinCollectedEvent = game.ReplicatedStorage.Remotes.Gameplay.CoinCollected
-local RoundStartEvent = game.ReplicatedStorage.Remotes.Gameplay.RoundStart
-local RoundEndEvent = game.ReplicatedStorage.Remotes.Gameplay.RoundEndFade
-
--- Create RGB Outline
-local function CreateRGBOutline(parent, size, position)
-    local outline = Instance.new("Frame")
-    outline.Name = "RGBOutline"
-    outline.Size = size + UDim2.new(0, 6, 0, 6)
-    outline.Position = position - UDim2.new(0, 3, 0, 3)
-    outline.BackgroundTransparency = 0
-    outline.ZIndex = 0
-    outline.Parent = parent
-
-    local gradient = Instance.new("UIGradient")
-    gradient.Rotation = 45
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 0, 255)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 0, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-    })
-    gradient.Parent = outline
-
-    spawn(function()
-        while wait() do
-            gradient.Offset = Vector2.new(gradient.Offset.X - 0.005, gradient.Offset.Y - 0.005)
-        end
-    end)
-
-    return outline
-end
-
 -- Create Main GUI
 local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "MM2PremiumFarm"
+MainGui.Name = "MM2PremiumFarm_Fixed"
 MainGui.Parent = CoreGui
 
 -- Main Frame
@@ -60,33 +23,47 @@ MainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Parent = MainGui
 
--- Add RGB Outline
-local RGBOutline = CreateRGBOutline(MainGui, MainFrame.Size, MainFrame.Position)
+-- Make draggable (FIXED)
+local dragging, dragInput, dragStart, startPos
 
--- Title
-local Title = Instance.new("TextLabel")
-Title.Text = "MM2 PREMIUM FARM"
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Position = UDim2.new(0, 0, 0, 5)
-Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.Parent = MainFrame
+local function Update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(
+        startPos.X.Scale, 
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale, 
+        startPos.Y.Offset + delta.Y
+    )
+end
 
--- Close Button
-local CloseButton = Instance.new("TextButton")
-CloseButton.Text = "✕"
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.BackgroundTransparency = 1
-CloseButton.TextColor3 = Color3.fromRGB(255, 80, 80)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 20
-CloseButton.Parent = MainFrame
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
 
--- Create Cool Toggle Switch
-local function CreateCoolToggle(name, yPos)
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        Update(input)
+    end
+end)
+
+-- Toggles (FIXED)
+local function CreateToggle(name, yPos)
     local container = Instance.new("Frame")
     container.Size = UDim2.new(0.9, 0, 0, 40)
     container.Position = UDim2.new(0.05, 0, yPos, 0)
@@ -135,9 +112,9 @@ local function CreateCoolToggle(name, yPos)
 end
 
 -- Create Toggles
-local AutoFarmToggle = CreateCoolToggle("Auto Farm", 0.15)
-local RareEggsToggle = CreateCoolToggle("Rare Eggs", 0.35)
-local NoRenderToggle = CreateCoolToggle("No Render", 0.55)
+local AutoFarmToggle = CreateToggle("Auto Farm", 0.15)
+local RareEggsToggle = CreateToggle("Rare Eggs", 0.35)
+local NoRenderToggle = CreateToggle("No Render", 0.55)
 
 -- Status Label
 local StatusLabel = Instance.new("TextLabel")
@@ -150,47 +127,7 @@ StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 14
 StatusLabel.Parent = MainFrame
 
--- Make draggable
-local dragging, dragInput, dragStart, startPos
-
-local function Update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    RGBOutline.Position = MainFrame.Position - UDim2.new(0, 3, 0, 3)
-end
-
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        Update(input)
-    end
-end)
-
--- Close functionality
-CloseButton.MouseButton1Click:Connect(function()
-    MainGui:Destroy()
-end)
-
--- Toggle functionality
+-- Initialize toggles properly
 local function ToggleSwitch(toggle)
     toggle.isOn = not toggle.isOn
     local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
@@ -210,47 +147,25 @@ local function ToggleSwitch(toggle)
     end
 end
 
--- Auto enable all toggles
+-- Auto-enable all features
 ToggleSwitch(AutoFarmToggle)
 ToggleSwitch(RareEggsToggle)
 ToggleSwitch(NoRenderToggle)
+RunService:Set3dRenderingEnabled(false)
+-- MM2 AutoFarm Premium - Part 2/2 (FIXED)
+-- Fixed: Rare egg handling + Speed 25
 
--- Anti-AFK
-local VirtualUser = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
-
--- Initialize variables
-local AutoFarmEnabled = true
-local RareEggsEnabled = true
-local NoRenderEnabled = true
+local attemptedRareEggs = {}
 local FullBasket = false
 local SavePosition = nil
-local CollectedRareEggs = {}
 
--- Toggle connections
-AutoFarmToggle.container.InputBegan:Connect(function()
-    AutoFarmEnabled = not AutoFarmEnabled
-    ToggleSwitch(AutoFarmToggle)
+-- Reset on round start
+game.ReplicatedStorage.Remotes.Gameplay.RoundStart.OnClientEvent:Connect(function()
+    attemptedRareEggs = {}
+    FullBasket = false
+    StatusLabel.Text = "Status: Farming"
 end)
 
-RareEggsToggle.container.InputBegan:Connect(function()
-    RareEggsEnabled = not RareEggsEnabled
-    ToggleSwitch(RareEggsToggle)
-end)
-
-NoRenderToggle.container.InputBegan:Connect(function()
-    NoRenderEnabled = not NoRenderEnabled
-    ToggleSwitch(NoRenderToggle)
-    RunService:Set3dRenderingEnabled(not NoRenderEnabled)
-end)
-
--- Initialize no render
-RunService:Set3dRenderingEnabled(false)
-
--- Coin container function
 local function GetCoinContainer()
     for _, v in workspace:GetChildren() do
         if v:FindFirstChild("CoinContainer") then
@@ -260,8 +175,9 @@ local function GetCoinContainer()
     return nil
 end
 
--- Create save point
 local function CreateSavePoint()
+    if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
+    
     local part = Instance.new("Part")
     part.Size = Vector3.new(10, 1, 10)
     part.Position = Player.Character.HumanoidRootPart.Position + Vector3.new(0, 100, 0)
@@ -270,102 +186,91 @@ local function CreateSavePoint()
     part.Parent = workspace
     SavePosition = part.CFrame * CFrame.new(0, 5, 0)
 end
--- MM2 AutoFarm Premium - Part 2/2 (Speed 25)
--- Tries each rare egg only once before continuing to farm
 
--- Track which rare eggs we've attempted
-local attemptedRareEggs = {}
-local FullBasket = false
-local SavePosition = nil
-
--- Reset attempts when round starts
-RoundStartEvent.OnClientEvent:Connect(function()
-    attemptedRareEggs = {}
-    FullBasket = false
-    StatusLabel.Text = "Status: Farming"
-end)
-
--- Main farming function with SPEED 25
+-- Main farming loop (SPEED 25)
 spawn(function()
-    while task.wait() do
-        if AutoFarmEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+    while task.wait(0.1) do
+        if AutoFarmToggle.isOn and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             local container = GetCoinContainer()
             if container and not FullBasket then
-                -- Find nearest regular coin
-                local nearestCoin = nil
-                local minDistance = math.huge
-                
-                -- Find nearest unattempted rare egg
-                local nearestRareEgg = nil
-                local rareEggDistance = math.huge
+                -- Find coins
+                local nearestCoin, minDistance = nil, math.huge
+                local nearestRareEgg, rareEggDistance = nil, math.huge
                 
                 for _, coin in pairs(container:GetChildren()) do
                     if coin:FindFirstChild("TouchInterest") then
-                        local distance = (Player.Character.HumanoidRootPart.Position - coin.Position).Magnitude
+                        local dist = (Player.Character.HumanoidRootPart.Position - coin.Position).Magnitude
                         
-                        -- Check for unattempted rare eggs
-                        if RareEggsEnabled and coin:GetAttribute("CoinID") == "RareEgg" then
+                        -- Rare eggs
+                        if RareEggsToggle.isOn and coin:GetAttribute("CoinID") == "RareEgg" then
                             local eggId = tostring(coin:GetAttribute("CoinUID"))
-                            if not attemptedRareEggs[eggId] and coin:FindFirstChildOfClass("MeshPart") and coin:FindFirstChildOfClass("MeshPart").Transparency < 0.6 then
-                                if distance < rareEggDistance then
-                                    nearestRareEgg = coin
-                                    rareEggDistance = distance
-                                end
+                            if not attemptedRareEggs[eggId] and dist < rareEggDistance then
+                                nearestRareEgg = coin
+                                rareEggDistance = dist
                             end
-                        -- Regular coins
-                        elseif (coin:GetAttribute("CoinID") == "Coin" or coin:GetAttribute("CoinID") == "Egg") and distance < minDistance then
+                        -- Normal coins
+                        elseif dist < minDistance then
                             nearestCoin = coin
-                            minDistance = distance
+                            minDistance = dist
                         end
                     end
                 end
                 
-                -- Prioritize unattempted rare eggs (SPEED 25)
-                if nearestRareEgg then
-                    local eggId = tostring(nearestRareEgg:GetAttribute("CoinUID"))
-                    attemptedRareEggs[eggId] = true  -- Mark as attempted
-                    StatusLabel.Text = "Status: Trying Rare Egg"
+                -- Target priority
+                local target = nearestRareEgg or nearestCoin
+                if target then
+                    -- Mark rare egg as attempted
+                    if target == nearestRareEgg then
+                        attemptedRareEggs[tostring(target:GetAttribute("CoinUID"))] = true
+                        StatusLabel.Text = "Status: Trying Rare Egg"
+                    end
                     
-                    -- Teleport to rare egg (only once) at speed 25
+                    -- Move to target (SPEED 25)
                     local tween = TweenService:Create(
                         Player.Character.HumanoidRootPart,
-                        TweenInfo.new(rareEggDistance / 25, Enum.EasingStyle.Linear), -- CHANGED TO 25
-                        {CFrame = CFrame.new(nearestRareEgg.Position)}
+                        TweenInfo.new((target == nearestRareEgg and rareEggDistance or minDistance) / 25, Enum.EasingStyle.Linear),
+                        {CFrame = CFrame.new(target.Position)}
                     )
                     tween:Play()
                     tween.Completed:Wait()
                     
-                    -- Immediately continue farming
                     StatusLabel.Text = "Status: Farming"
-                    
-                -- Farm regular coins (SPEED 25)
-                elseif nearestCoin and minDistance > 5 then
-                    local tween = TweenService:Create(
-                        Player.Character.HumanoidRootPart,
-                        TweenInfo.new(minDistance / 25, Enum.EasingStyle.Linear), -- CHANGED TO 25
-                        {CFrame = CFrame.new(nearestCoin.Position)}
-                    )
-                    tween:Play()
-                    tween.Completed:Wait()
                 end
             end
         end
-        task.wait(0.1)
     end
 end)
 
--- Handle basket full event
-CoinCollectedEvent.OnClientEvent:Connect(function(coinType, current, max)
+-- Handle events
+game.ReplicatedStorage.Remotes.Gameplay.CoinCollected.OnClientEvent:Connect(function(coinType, current, max)
     if coinType == "Egg" and current == max then
         FullBasket = true
         CreateSavePoint()
         if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             Player.Character.HumanoidRootPart.CFrame = SavePosition
         end
-        StatusLabel.Text = "Status: Full Basket (Waiting)"
+        StatusLabel.Text = "Status: Full Basket"
     end
 end)
 
--- Final initialization
-StatusLabel.Text = "Status: Farming (Speed 25)"
-RunService:Set3dRenderingEnabled(false)
+-- Toggle connections
+AutoFarmToggle.container.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        ToggleSwitch(AutoFarmToggle)
+    end
+end)
+
+RareEggsToggle.container.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        ToggleSwitch(RareEggsToggle)
+    end
+end)
+
+NoRenderToggle.container.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        ToggleSwitch(NoRenderToggle)
+        RunService:Set3dRenderingEnabled(not NoRenderToggle.isOn)
+    end
+end)
+
+StatusLabel.Text = "Status: Active (Speed 25)"
