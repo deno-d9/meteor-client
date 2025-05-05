@@ -270,8 +270,8 @@ local function CreateSavePoint()
     part.Parent = workspace
     SavePosition = part.CFrame * CFrame.new(0, 5, 0)
 end
--- MM2 AutoFarm Premium - Part 2/2
--- Features: Smart Rare Egg Handling (tries only once)
+-- MM2 AutoFarm Premium - Part 2/2 (Speed 25)
+-- Tries each rare egg only once before continuing to farm
 
 -- Track which rare eggs we've attempted
 local attemptedRareEggs = {}
@@ -285,7 +285,7 @@ RoundStartEvent.OnClientEvent:Connect(function()
     StatusLabel.Text = "Status: Farming"
 end)
 
--- Main farming function with tween speed 30
+-- Main farming function with SPEED 25
 spawn(function()
     while task.wait() do
         if AutoFarmEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
@@ -320,16 +320,16 @@ spawn(function()
                     end
                 end
                 
-                -- Prioritize unattempted rare eggs
+                -- Prioritize unattempted rare eggs (SPEED 25)
                 if nearestRareEgg then
                     local eggId = tostring(nearestRareEgg:GetAttribute("CoinUID"))
                     attemptedRareEggs[eggId] = true  -- Mark as attempted
                     StatusLabel.Text = "Status: Trying Rare Egg"
                     
-                    -- Teleport to rare egg (only once)
+                    -- Teleport to rare egg (only once) at speed 25
                     local tween = TweenService:Create(
                         Player.Character.HumanoidRootPart,
-                        TweenInfo.new(rareEggDistance / 30, Enum.EasingStyle.Linear),
+                        TweenInfo.new(rareEggDistance / 25, Enum.EasingStyle.Linear), -- CHANGED TO 25
                         {CFrame = CFrame.new(nearestRareEgg.Position)}
                     )
                     tween:Play()
@@ -338,11 +338,11 @@ spawn(function()
                     -- Immediately continue farming
                     StatusLabel.Text = "Status: Farming"
                     
-                -- Farm regular coins
+                -- Farm regular coins (SPEED 25)
                 elseif nearestCoin and minDistance > 5 then
                     local tween = TweenService:Create(
                         Player.Character.HumanoidRootPart,
-                        TweenInfo.new(minDistance / 30, Enum.EasingStyle.Linear),
+                        TweenInfo.new(minDistance / 25, Enum.EasingStyle.Linear), -- CHANGED TO 25
                         {CFrame = CFrame.new(nearestCoin.Position)}
                     )
                     tween:Play()
@@ -367,5 +367,5 @@ CoinCollectedEvent.OnClientEvent:Connect(function(coinType, current, max)
 end)
 
 -- Final initialization
-StatusLabel.Text = "Status: Farming Active"
+StatusLabel.Text = "Status: Farming (Speed 25)"
 RunService:Set3dRenderingEnabled(false)
